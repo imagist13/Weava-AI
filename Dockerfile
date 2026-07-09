@@ -5,7 +5,7 @@
 # ─────────────────────────────────────────────────────────────
 
 # 1. 依赖安装层（仅缓存 lockfile + deps）
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN \
   fi
 
 # 2. 构建层
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -37,7 +37,7 @@ RUN \
   fi
 
 # 3. 生产运行层（standalone 输出，体积小）
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
