@@ -2,9 +2,11 @@
 # ─────────────────────────────────────────────────────────────
 # WeaveAI — 首次 SSL 证书申请脚本
 # 用法：bash init-letsencrypt.sh
-# 前置：.env 中已填好 DOMAIN 与 CERTBOT_EMAIL
+# 前置：.env 中已填好 DOMAIN 与 CERTBOT_EMAIL；deploy.sh 已启动 nginx
 # ─────────────────────────────────────────────────────────────
 set -euo pipefail
+
+cd "$(dirname "$0")"
 
 # 加载 .env
 if [ ! -f .env ]; then
@@ -13,37 +15,45 @@ if [ ! -f .env ]; then
 fi
 set -a; source .env; set +a
 
+if [ -z "${DOMAIN:-}" ]; then
+  echo "❌ .env 中 DOMAIN 为空"; exit 1
+fi
+if [ -z "${CERTBOT_EMAIL:-}" ]; then
+  echo "❌ .env 中 CERTBOT_EMAIL 为空"; exit 1
+fi
+
 domains=("$DOMAIN" "www.${DOMAIN}")
 rsa_key_size=4096
-data_path="./certbot"
 email="$CERTBOT_EMAIL"
 staging="${CERTBOT_STAGING:-0}"
 
-if [ ! -d "$data_path/conf" ]; then
-  echo "### Creating dummy certificate for $domains ..."
-  path="/etc/letsencrypt/live/${DOMAIN}"
-  mkdir -p "$data_path/conf/live/${DOMAIN}"
-  docker compose run --rm --entrypoint "\
-    openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1 \
-      -keyout '$path/privkey.pem' \
-      -out '$path/fullchain.pem' \
-      -subj '/CN=localhost'" certbot
-  echo
+# 确保 nginx 在跑（用于响应 http-01 challenge）
+if ! docker compose ps --status running nginx | grep -q nginx; then
+  echo "⚠️  nginx 未运行，先启动 ..."
+  docker compose up -d nginx
+  sleep 3
 fi
 
-echo "### Removing old nginx ..."
-docker compose down --remove-orphans
-docker compose up -d nginx
-echo
+# 清理旧的 dummy 证书（如果存在），避免与真实证书冲突
+echo "### 清理 dummy 证书（如有） ..."
+docker compose run --rm --entrypoint sh certbot -c "
+  if [ -f /etc/letsencrypt/live/${DOMAIN}/fullchain.pem ]; then
+    # 只删掉自签的 dummy：通过 issuer 判断（简单起见按大小判断，dummy 只有 1 天有效期）
+    if openssl x509 -in /etc/letsencrypt/live/${DOMAIN}/fullchain.pem -noout -issuer 2>/dev/null | grep -qi 'CN=${DOMAIN}'; then
+      echo '删除 dummy 证书 ...'
+      rm -rf /etc/letsencrypt/live/${DOMAIN} \
+             /etc/letsencrypt/archive/${DOMAIN} \
+             /etc/letsencrypt/renewal/${DOMAIN}.conf
+    fi
+  fi
+" || true
 
-echo "### Requesting Let's Encrypt certificate for $domains ..."
-# 拼接 domain args
+echo "### 申请 Let's Encrypt 证书 for ${domains[*]} ..."
 domain_args=""
 for d in "${domains[@]}"; do
   domain_args="$domain_args -d $d"
 done
 
-# 选择 staging 或 prod
 case "$staging" in
   1) staging_arg="--staging" ;;
   *) staging_arg="" ;;
@@ -56,13 +66,10 @@ docker compose run --rm --entrypoint "\
     --email $email \
     --rsa-key-size $rsa_key_size \
     --agree-tos --no-eff-email --force-renewal" certbot
-echo
 
-echo "### Reloading nginx ..."
+echo "### 重载 nginx ..."
 docker compose exec nginx nginx -s reload
 
 echo
-echo "✅ 证书申请完成！现在启动全栈："
-echo "   docker compose up -d"
-echo
+echo "✅ 证书申请完成"
 echo "访问： https://${DOMAIN}"

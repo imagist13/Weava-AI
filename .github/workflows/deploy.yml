@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────
+# WeaveAI — CD：push 到 main 后 SSH 到服务器 pull + rebuild + restart
+# 需要在仓库 Settings → Secrets and variables → Actions 配置：
+#   SSH_HOST       服务器公网 IP（例如 162.211.181.163）
+#   SSH_USER       登录用户（root 或 deploy）
+#   SSH_KEY        私钥（推荐；PEM 格式，含 -----BEGIN OPENSSH PRIVATE KEY-----）
+#   SSH_PORT       可选，默认 22
+#   DEPLOY_PATH    服务器上的项目目录，例如 /root/Weava-AI
+# ─────────────────────────────────────────────────────────────
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to server
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: SSH & deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            if [ -z "$DEPLOY_PATH" ]; then
+              echo "❌ DEPLOY_PATH secret 未设置"; exit 1
+            fi
+
+            cd "$DEPLOY_PATH"
+
+            echo "=== git pull ==="
+            git fetch --all
+            git reset --hard origin/main
+
+            echo "=== 确认 .env 存在 ==="
+            if [ ! -f .env ]; then
+              echo "❌ 首次部署请先 SSH 登录服务器手动 cp .env.example .env 并填好 DOMAIN / CERTBOT_EMAIL"
+              exit 1
+            fi
+
+            echo "=== docker compose build & up ==="
+            docker compose build app
+            docker compose up -d
+
+            echo "=== 状态 ==="
+            docker compose ps

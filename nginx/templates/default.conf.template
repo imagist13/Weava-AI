@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────────────────────
-# WeaveAI — Nginx site config
+# WeaveAI — Nginx site config (envsubst template)
+# 通过环境变量 DOMAIN 注入域名，nginx 镜像启动时自动 envsubst
 # 80  → 初次访问时强制走 ACME http-01 验证（certbot challenge）
 # 443 → 启用 HTTPS，反代到 app:3000
 # ─────────────────────────────────────────────────────────────
@@ -8,7 +9,7 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name localwise.top www.localwise.top;
+    server_name ${DOMAIN} www.${DOMAIN};
 
     # ACME http-01 challenge — certbot 通过这个路径校验域名所有权
     location ^~ /.well-known/acme-challenge/ {
@@ -28,11 +29,11 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
     http2 on;
-    server_name localwise.top www.localwise.top;
+    server_name ${DOMAIN} www.${DOMAIN};
 
     # SSL 证书（certbot 申请后会自动写入此路径）
-    ssl_certificate     /etc/letsencrypt/live/localwise.top/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/localwise.top/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
 
     # SSL 优化配置
     ssl_session_timeout 1d;
