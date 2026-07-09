@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────
+# WeaveAI — Production Compose
+# 架构：nginx (80/443) → app (3000) + certbot (一次性证书申请 + 续期)
+# 持久化：data volume 挂载到宿主机
+# ─────────────────────────────────────────────────────────────
+
+name: weaveai
+
+services:
+  # ── Next.js 应用（standalone 模式，port 3000 仅内网） ──
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: weaveai:latest
+    container_name: weaveai-app
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    volumes:
+      - weaveai-data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - weaveai-net
+    depends_on: []   # 不依赖任何东西，独立启动
+
+  # ── Nginx 反向代理 + SSL 终止（对外 80/443） ──
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: weaveai-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-www:/var/www/certbot:ro
+      - certbot-conf:/etc/letsencrypt:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - weaveai-net
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  # ── Certbot：负责 SSL 证书的申请与续期 ──
+  certbot:
+    image: certbot/certbot:latest
+    container_name: weaveai-certbot
+    restart: "no"   # 申请完即退出；续期由 cron 或外部触发
+    volumes:
+      - certbot-www:/var/www/certbot:rw
+      - certbot-conf:/etc/letsencrypt:rw
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+    networks:
+      - weaveai-net
+
+networks:
+  weaveai-net:
+    driver: bridge
+
+volumes:
+  weaveai-data:
+    name: weaveai-data
+  certbot-www:
+    name: weaveai-certbot-www
+  certbot-conf:
+    name: weaveai-certbot-conf

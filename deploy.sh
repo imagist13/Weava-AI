@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────
+# WeaveAI — 一键部署脚本（在云服务器上执行）
+# 用法：bash deploy.sh [--ssl]
+#   --ssl    同时申请并启用 SSL 证书
+# ─────────────────────────────────────────────────────────────
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+WITH_SSL=0
+for arg in "$@"; do
+  case "$arg" in
+    --ssl) WITH_SSL=1 ;;
+    *) echo "未知参数：$arg"; exit 1 ;;
+  esac
+done
+
+echo "═══════════════════════════════════════════════"
+echo "  WeaveAI · 部署"
+echo "═══════════════════════════════════════════════"
+
+# ── 1. 检查 Docker ──
+if ! command -v docker >/dev/null 2>&1; then
+  echo "❌ 未安装 docker，请先安装：curl -fsSL https://get.docker.com | sh"
+  exit 1
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+  echo "❌ 未安装 docker compose plugin"
+  exit 1
+fi
+
+# ── 2. 检查 .env ──
+if [ ! -f .env ]; then
+  echo "📋 生成 .env ..."
+  cp .env.example .env
+  echo "⚠️  请编辑 .env 填入真实配置（特别是 DOMAIN 和 CERTBOT_EMAIL）后重试"
+  exit 1
+fi
+
+set -a; source .env; set +a
+if [ -z "${DOMAIN:-}" ]; then
+  echo "❌ .env 中 DOMAIN 为空"
+  exit 1
+fi
+
+echo "✓ DOMAIN = $DOMAIN"
+
+# ── 3. 拉取 / 构建镜像 ──
+echo "🐳 构建应用镜像 ..."
+docker compose build --no-cache app
+
+# ── 4. SSL 证书 ──
+if [ "$WITH_SSL" = "1" ]; then
+  echo "🔐 申请 SSL 证书 ..."
+  bash init-letsencrypt.sh
+fi
+
+# ── 5. 启动 ──
+echo "🚀 启动服务 ..."
+docker compose up -d
+
+# ── 6. 等待并打印状态 ──
+sleep 5
+echo
+echo "═══════════════════════════════════════════════"
+echo "  容器状态"
+echo "═══════════════════════════════════════════════"
+docker compose ps
+
+echo
+echo "═══════════════════════════════════════════════"
+echo "  访问地址"
+echo "═══════════════════════════════════════════════"
+if [ "$WITH_SSL" = "1" ]; then
+  echo "  https://${DOMAIN}"
+else
+  echo "  http://<服务器 IP>"
+fi
+echo
+echo "后续操作："
+echo "  查看日志：    docker compose logs -f"
+echo "  重启服务：    docker compose restart"
+echo "  停止服务：    docker compose down"
+echo "  申请 SSL：    bash deploy.sh --ssl"

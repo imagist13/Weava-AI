@@ -1,0 +1,227 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ===========================================================
+   WeaveAI · Linear 极简设计系统
+   — 灰白底 · 细分割 · 单一靛蓝点缀 · 多层精密阴影
+   — 字号 13/12px 紧凑 · 圆角 6px · 间距 8/12/16/24
+   =========================================================== */
+
+:root {
+  /* 字体 */
+  --font-sans: "Inter", "DM Sans", system-ui, -apple-system, BlinkMacSystemFont,
+               "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", Consolas, monospace;
+
+  /* === Linear 风格色板 === */
+  /* 中性色（核心） */
+  --neutral-0:   #ffffff;
+  --neutral-25:  #fafbfc;   /* 最淡灰 */
+  --neutral-50:  #f6f7f9;   /* 页面背景 */
+  --neutral-100: #eef0f3;   /* 浅分割 */
+  --neutral-150: #e3e6ea;
+  --neutral-200: #d8dce1;
+  --neutral-300: #b8bdc6;
+  --neutral-400: #8c93a1;
+  --neutral-500: #646b78;
+  --neutral-600: #4a5160;
+  --neutral-700: #353a47;
+  --neutral-800: #1f2330;
+  --neutral-900: #0d1018;
+  --neutral-950: #050810;
+
+  /* 靛蓝主色（克制使用） */
+  --indigo-50:  #eef0ff;
+  --indigo-100: #e0e4ff;
+  --indigo-200: #c7cdff;
+  --indigo-300: #a4aeff;
+  --indigo-400: #8088fa;
+  --indigo-500: #5e6ad2;   /* Linear 主色 */
+  --indigo-600: #5159c0;
+  --indigo-700: #4049a0;
+  --indigo-800: #2f3580;
+
+  /* 状态色 */
+  --emerald-100: #d1f4e0;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --rose-100:    #ffe4e6;
+  --rose-500:    #f43f5e;
+  --rose-600:    #e11d48;
+  --amber-100:   #fef3c7;
+  --amber-500:   #f59e0b;
+
+  /* === Tailwind 语义变量 === */
+  --background:           var(--neutral-50);
+  --foreground:           var(--neutral-800);
+  --card:                var(--neutral-0);
+  --card-foreground:     var(--neutral-800);
+  --popover:             var(--neutral-0);
+  --popover-foreground:  var(--neutral-800);
+  --primary:             var(--indigo-500);
+  --primary-foreground:  var(--neutral-0);
+  --secondary:           var(--neutral-100);
+  --secondary-foreground: var(--neutral-700);
+  --muted:               var(--neutral-100);
+  --muted-foreground:    var(--neutral-500);
+  --accent:              var(--neutral-100);
+  --accent-foreground:   var(--neutral-800);
+  --destructive:         var(--rose-500);
+  --destructive-foreground: var(--neutral-0);
+  --border:              var(--neutral-150);
+  --input:               var(--neutral-200);
+  --ring:                var(--indigo-500);
+  --radius:              6px;
+
+  /* === 阴影（Linear 风：极轻 + 微深） === */
+  --shadow-xs: 0 1px 2px 0 rgba(13, 16, 24, 0.04);
+  --shadow-sm: 0 1px 2px 0 rgba(13, 16, 24, 0.04), 0 1px 3px 0 rgba(13, 16, 24, 0.06);
+  --shadow-md: 0 2px 4px 0 rgba(13, 16, 24, 0.05), 0 4px 8px 0 rgba(13, 16, 24, 0.04);
+  --shadow-lg: 0 4px 8px 0 rgba(13, 16, 24, 0.04), 0 12px 24px 0 rgba(13, 16, 24, 0.06);
+  --shadow-xl: 0 8px 16px 0 rgba(13, 16, 24, 0.06), 0 24px 48px 0 rgba(13, 16, 24, 0.08);
+  --shadow-popover: 0 0 0 1px rgba(13, 16, 24, 0.06), 0 8px 24px 0 rgba(13, 16, 24, 0.08);
+  --shadow-drawer:   -1px 0 0 0 var(--neutral-100), -8px 0 24px 0 rgba(13, 16, 24, 0.04);
+  --shadow-glow:     0 0 0 4px rgba(94, 106, 210, 0.12);
+}
+
+/* ===========================================================
+   全局重置
+   =========================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01", "ss03";
+}
+
+body {
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--indigo-100);
+  color: var(--indigo-700);
+}
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*:hover > ::-webkit-scrollbar-thumb,
+.always-scroll::-webkit-scrollbar-thumb { background: var(--neutral-200); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--neutral-300); background-clip: padding-box; }
+
+/* ===========================================================
+   画布背景：极淡方格（Linear 文档底纹）
+   =========================================================== */
+.canvas-bg {
+  position: absolute;
+  inset: 0;
+  background-color: var(--neutral-0);
+  background-image:
+    linear-gradient(to right, var(--neutral-100) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--neutral-100) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+  mask-image: radial-gradient(ellipse 80% 60% at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at center, black 30%, transparent 80%);
+}
+
+/* ===========================================================
+   关键帧
+   =========================================================== */
+@keyframes fadeIn    { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeInUp  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in      { animation: fadeIn 0.2s ease-out; }
+.animate-fade-in-up   { animation: fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-fade-in-down { animation: fadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-slide-in-right { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-pulse-dot { animation: pulseDot 1.5s ease-in-out infinite; }
+.animate-spin      { animation: spin 0.8s linear infinite; }
+
+/* ===========================================================
+   Tailwind @theme 映射
+   =========================================================== */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+}
+
+/* ===========================================================
+   Radix Dialog 覆盖（Linear 风）
+   =========================================================== */
+[data-slot="dialog-overlay"] {
+  background: rgba(13, 16, 24, 0.32);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+[data-slot="dialog-content"] {
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--neutral-150);
+  background: var(--neutral-0);
+}
+
+/* ===========================================================
+   Excalidraw 容器
+   =========================================================== */
+.excalidraw-host {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Excalidraw 内部清理（避免它自带的重 UI 与本设计冲突） */
+.excalidraw-host .layer-ui__wrapper { pointer-events: none; }
+.excalidraw-host .App-menu { pointer-events: none; }
+.excalidraw-host .Island { pointer-events: auto; }
+.excalidraw-host .FixedSideContainer { pointer-events: none; }
+.excalidraw-host .FixedSideContainer > * { pointer-events: auto; }
