@@ -5,6 +5,14 @@
 # 443 → 启用 HTTPS，反代到 app:3000
 # ─────────────────────────────────────────────────────────────
 
+# ── default_server：任何非本站域名的请求直接拒绝，避免被他人 IP 曾用域名蹭流量 ──
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+
 # ── 80 端口：HTTP → HTTPS 跳转 + ACME challenge 路径放行 ──
 server {
     listen 80;
