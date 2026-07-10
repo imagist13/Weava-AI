@@ -44,6 +44,8 @@ services:
       - "443:443"
     environment:
       DOMAIN: ${DOMAIN}
+      # 只替换 ${DOMAIN}，保留 $host / $remote_addr / $scheme 等 nginx 内置变量
+      NGINX_ENVSUBST_FILTER: "^DOMAIN$$"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/templates:/etc/nginx/templates:ro
